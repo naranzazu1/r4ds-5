@@ -17,27 +17,32 @@ library(jsonlite)
 ```
 
 ```{r}
+#| message: false
 imdb_snapshots <- readRDS("data/imdb_snapshots.rds")
 print(imdb_snapshots)
 print(imdb_snapshots |> count(snap_year))
 ```
 
 ```{r}
+#| message: false
 raw <- fromJSON("data/wildfires.geojson")
 nrow(raw$features)
 ```
 
 ```{r}
+#| message: false
 first_fire <- raw$features[1, ]
 names(first_fire)
 ```
 
 ```{r}
+#| message: false
 first_coordinate <- first_fire$geometry$coordinates[[1]][1, 1, ]
 first_coordinate
 ```
 
 ```{r}
+#| message: false
 features <- tibble(features = raw$features)
 features <- unnest_wider(features, features)
 features <- unnest_wider(features, properties)
@@ -46,6 +51,7 @@ features <- unnest_wider(features, geometry, names_sep = "_")
 
 ```{r}
 #| cache: true
+#| message: false
 fires <- features |>
   select(incident, gis_acres, fire_year, agency, state, geometry_coordinates) |>
   mutate(
@@ -55,6 +61,7 @@ fires <- features |>
 ```
 
 ```{r}
+#| message: false
 august_fires <- fires |>
   filter(str_detect(incident, "August"))
 nrow(august_fires)
@@ -89,6 +96,7 @@ fires_by_state
 ```
 
 ```{r}
+#| message: false
 big_fires <- fires |>
   filter(gis_acres >= 100000) |>
   mutate(
@@ -98,6 +106,7 @@ big_fires <- fires |>
 ```
 
 ```{r}
+#| message: false
 big_fires_by_agency <- big_fires |>
   count(agency, name = "number_of_fires")
 
@@ -111,6 +120,7 @@ ggplot(big_fires_by_agency, aes(x = agency, y = number_of_fires)) +
 ```
 
 ```{r}
+#| message: false
 top_ten_fires <- big_fires |>
   arrange(desc(gis_acres)) |>
   slice_head(n = 10) |>
@@ -120,7 +130,9 @@ top_ten_fires <- big_fires |>
       ~ sf::st_polygon(list(drop(.x[[1]])))
     )
   ) |>
-  sf::st_as_sf()
+  sf::st_as_sf() |>
+  sf::st_set_crs(4326) |>
+  sf::st_make_valid()
 
 top_ten_bounds <- sf::st_bbox(top_ten_fires)
 
@@ -142,6 +154,7 @@ leaflet(top_ten_fires) |>
 ```
 
 ```{r}
+#| message: false
 rank_changes <- imdb_snapshots |>
   filter(snap_year %in% c(2015, 2022)) |>
   select(title, year, snap_year, rank) |>
@@ -163,6 +176,7 @@ print(average_rank_change_by_decade)
 ```
 
 ```{r}
+#| message: false
 nolan_films <- c(
   "The Dark Knight", "Inception", "Interstellar",
   "The Dark Knight Rises", "Memento", "The Prestige", "Batman Begins"
@@ -178,6 +192,7 @@ print(nolan_ranks)
 ```
 
 ```{r}
+#| message: false
 interstellar_ranks <- imdb_snapshots |>
   filter(title == "Interstellar") |>
   arrange(snap_year)
@@ -192,6 +207,7 @@ ggplot(interstellar_ranks, aes(x = factor(snap_year), y = rank)) +
 ```
 
 ```{r}
+#| message: false
 film_snapshot_counts <- imdb_snapshots |>
   distinct(title, snap_year) |>
   count(title, name = "snapshot_count")
@@ -213,6 +229,7 @@ ggplot(snapshot_count_distribution, aes(x = snapshot_count, y = number_of_films)
 
 ```{r}
 #| cache: true
+#| message: false
 snapshot_years <- c(2015, 2017, 2019, 2021, 2022)
 snapshot_urls <- c(
   "https://web.archive.org/web/20150101/https://www.imdb.com/chart/top/",
@@ -262,6 +279,7 @@ imdb_snapshots <- map2(snapshot_urls, snapshot_years, scrape_imdb_snapshot) |>
 ```
 
 ```{r}
+#| message: false
 ggplot(
   average_rank_change_by_decade,
   aes(
